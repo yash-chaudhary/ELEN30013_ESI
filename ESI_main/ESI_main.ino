@@ -8,7 +8,7 @@
 #define DHT11_PIN 3
 
 // thermistor variables
-int thermistorPin = 1;
+int thermistorPin = A4;
 float Vo;
 float Rt;
 float T;
@@ -17,13 +17,13 @@ float To = 25.0;
 float B = 2200.0;
 
 // LDR variables
-const int ldrPin = A1;
+const int ldrPin = A0;
 const float ldrThreshold = 200.0;
 
 // LED & Buzzer variables
-const int redPin = 7;
-const int greenPin = 6;
-const int bluePin = 5;
+const int redPin = A3;
+const int greenPin = A2;
+const int bluePin = A1;
 const int buzzPin = 4
 ;
 // LCD variables
@@ -42,17 +42,28 @@ void buzz_LED(float co2_ppm);
 // setup
 void setup() {
   Serial.begin(9600);   // 9600 bits per second baud rate
-  pinMode(ledPin, OUTPUT);
+  pinMode(redPin, OUTPUT);
+  pinMode(greenPin, OUTPUT);
+  pinMode(bluePin, OUTPUT);
+  pinMode(buzzPin, OUTPUT);
   pinMode(ldrPin, INPUT);
 }
 
 
 // main loop
 void loop() {
+  float co2_ppm = 500;
   float curr_temp = get_temp();           // get current temperature (deg C)
   float curr_humidity = get_humidity();   // get current humidity (%)
   bool is_day = get_light();              // get light or day (bool)
-  buzz_LED(co2_ppm);			  // update buzzer and led
+  //co2_ppm = analogRead(ldrPin);
+  buzz_LED(co2_ppm);			                // update buzzer and led
+
+  int toneDuration = map(co2_ppm, 10, 1000, 1000, 10);
+  Serial.print("Buzz Duration: ");
+  Serial.println(toneDuration);
+
+  delay(toneDuration);
 }
 
 // returns: current temperature in degrees celcius
@@ -60,13 +71,13 @@ float get_temp() {
   Vo = analogRead(thermistorPin);
   Vo = Vo * 5 / 1024;
   
-  Serial.print("Voltage reading (V): ");
-  Serial.println(Vo);
+  // Serial.print("Voltage reading (V): ");
+  // Serial.println(Vo);
 
   Rt = Vo * Ro / (5 - Vo);
 
-  Serial.print("Resistance reading (Ohms): ");
-  Serial.println(Rt);
+  // Serial.print("Resistance reading (Ohms): ");
+  // Serial.println(Rt);
 
   int chk = DHT.read11(DHT11_PIN);
   float T_DHT = DHT.temperature;
@@ -101,12 +112,11 @@ bool get_light() {
   if (ldrReading <= ldrThreshold) {
     Serial.print("It's NIGHT: ");
     Serial.println(ldrReading);
-    return False;
+    return false;
   } else {
-    digitalWrite(ledPin, LOW);
     Serial.print("It's DAY: ");
     Serial.println(ldrReading);
-    return True;
+    return true;
   }
 }
 
@@ -131,8 +141,11 @@ void buzz_LED(float co2_ppm) {
 
   }
 
-  int toneFreq = map(co2_ppm, 10, 1000, 31, 15000);
-  tone(buzzPin, toneFreq);
+  int toneFreq = map(co2_ppm, 10, 1000, 31, 1500);
+  Serial.print("Buzz Freq: ");
+  Serial.println(toneFreq);
+
+  tone(buzzPin, toneFreq, 100);
 }
 
 void setColour (int redValue, int greenValue, int blueValue) {
