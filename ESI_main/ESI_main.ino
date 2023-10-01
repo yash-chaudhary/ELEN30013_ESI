@@ -56,7 +56,7 @@ void loop() {
   float curr_temp = get_temp();           // get current temperature (deg C)
   float curr_humidity = get_humidity();   // get current humidity (%)
   bool is_day = get_light();              // get light or day (bool)
-  //co2_ppm = analogRead(ldrPin);
+  co2_ppm = analogRead(ldrPin);
   buzz_LED(co2_ppm);			                // update buzzer and led
 
   int toneDuration = map(co2_ppm, 10, 1000, 1000, 10);
@@ -101,6 +101,8 @@ float get_humidity() {
 
   int chk = DHT.read11(DHT11_PIN);
   float H_DHT = DHT.humidity;
+  Serial.print("Humidity reading (%): ");
+  Serial.println(H_DHT);
 
   return H_DHT;
 }
