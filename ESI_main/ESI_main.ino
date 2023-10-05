@@ -3,9 +3,24 @@
 #include <math.h>
 #include <dht.h>            // include the library http://arduino.cc/playground/Main/DHTLib
 #include <LiquidCrystal.h>  // include the library https://www.arduino.cc/en/Reference/LiquidCrystal
+#include "MQ135.h"
+#include <ThreeWire.h>  
+#include <RtcDS1302.h>
 
 // defines
 #define DHT11_PIN 3
+
+// MQ135 Sensor
+int co2_ppm;
+int sensorPinAnalogue = A1;
+MQ135 gasSensor(sensorPinAnalogue, 230);
+
+// RTC timer
+int clk_pin = 11;
+int dat_pin = 12;
+int rst_pin = 13;
+ThreeWire myWire(dat_pin,clk_pin,rst_pin); // IO, SCLK, CE
+RtcDS1302<ThreeWire> Rtc(myWire);
 
 // thermistor variables
 int thermistorPin = A4;
@@ -23,9 +38,8 @@ const float ldrThreshold = 200.0;
 // LED & Buzzer variables
 const int redPin = A3;
 const int greenPin = A2;
-const int bluePin = A1;
-const int buzzPin = 4
-;
+const int buzzPin = 4;
+
 // LCD variables
 const int rs = 8, en = 9, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
 
@@ -34,7 +48,10 @@ dht DHT;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 // function prototypes
+int get_co2_ppm();
+RtcDateTime get_time();
 float get_temp();
+float fet_humidity();
 bool get_light();
 void buzz_LED(float co2_ppm);
 
@@ -44,26 +61,54 @@ void setup() {
   Serial.begin(9600);   // 9600 bits per second baud rate
   pinMode(redPin, OUTPUT);
   pinMode(greenPin, OUTPUT);
-  pinMode(bluePin, OUTPUT);
   pinMode(buzzPin, OUTPUT);
   pinMode(ldrPin, INPUT);
+
+  Rtc.Begin();
+  RtcDateTime compiled = RtcDateTime(__DATE__, __TIME__);
+  Rtc.SetDateTime(compiled);
 }
 
 
 // main loop
 void loop() {
-  float co2_ppm = 500;
+  co2_ppm = get_co2_ppm();
+  RtcDateTime curr_time = get_time();
   float curr_temp = get_temp();           // get current temperature (deg C)
   float curr_humidity = get_humidity();   // get current humidity (%)
   bool is_day = get_light();              // get light or day (bool)
-  co2_ppm = analogRead(ldrPin);
+  //co2_ppm = analogRead(ldrPin);
   buzz_LED(co2_ppm);			                // update buzzer and led
 
-  int toneDuration = map(co2_ppm, 10, 1000, 1000, 10);
+  int toneDuration = map(co2_ppm, 5, 1000, 1000, 10);
   Serial.print("Buzz Duration: ");
   Serial.println(toneDuration);
 
   delay(toneDuration);
+}
+
+// returns: MQ135 CO2 concentration in ppm
+int get_co2_ppm() {
+  co2_ppm = gasSensor.getPPM(); // Read analog input pin A5
+  
+  if (co2_ppm < 5) {
+    co2_ppm = 5;
+  } else if (co2_ppm > 1000) {
+    co2_ppm = 1000;
+  }
+  
+  Serial.print("co2_ppm: ");
+  Serial.println(co2_ppm);
+  //delay(1000);
+
+  return co2_ppm;
+}
+
+RtcDateTime get_time() {
+  RtcDateTime now = Rtc.GetDateTime();
+
+  printDateTime(now);
+  Serial.println();
 }
 
 // returns: current temperature in degrees celcius
@@ -127,31 +172,61 @@ void buzz_LED(float co2_ppm) {
   // LED green blinking for good air, then to orange for mid air, red for poor air
   // Buzzer will only buzz if air is mid or worse, buzz faster and higher pitch for poorer air
 
-  // CAN GET RID OF BLUE PIN SINCE IT'S ALWAYS ZEROOOOOOOOOOOO
-
-  if (co2_ppm < 300) {
+  if (co2_ppm < 400) {
     // Green
-    setColour(0, 255, 0);
+    setColour(0, 255);
 
-  } else if (co2_ppm >= 300 && co2_ppm <= 700) {
+  } else if (co2_ppm >= 400 && co2_ppm <= 700) {
     // Orange
-    setColour(255, 165, 0);
+    setColour(255, 165);
 
   } else if (co2_ppm > 700) {
     // Red
-    setColour(255, 0, 0);
-
+    setColour(255, 0);
   }
 
-  int toneFreq = map(co2_ppm, 10, 1000, 31, 1500);
+  // int greenValue = map(co2_ppm, 10, 1000, 255, 128);
+  // int redValue = map(co2_ppm, 10, 1000, 128, 255);
+  // Serial.print("greenValue: ");
+  // Serial.println(greenValue);
+  // Serial.print("redValue: ");
+  // Serial.println(redValue);
+  // analogWrite(redPin, redValue);
+  // analogWrite(greenPin, greenValue);
+
+  // setColour(redValue, greenValue, 0);
+
+  int toneFreq = map(co2_ppm, 5, 1000, 31, 1500);
   Serial.print("Buzz Freq: ");
   Serial.println(toneFreq);
 
   tone(buzzPin, toneFreq, 100);
 }
 
-void setColour (int redValue, int greenValue, int blueValue) {
+void setColour (int redValue, int greenValue) {
   analogWrite(redPin, redValue);
   analogWrite(greenPin, greenValue);
-  analogWrite(bluePin, blueValue);
+}
+
+void printDateTime(const RtcDateTime& dt)
+{
+    char datestring[11];
+    char timestring[9];
+
+    snprintf_P(datestring, 
+            11,
+            PSTR("%02u/%02u/%04u"),
+            dt.Month(),
+            dt.Day(),
+            dt.Year() );
+
+    snprintf_P(timestring, 
+            9,
+            PSTR("%02u:%02u:%02u"),
+            dt.Hour(),
+            dt.Minute(),
+            dt.Second() );
+
+    Serial.println(datestring);
+    Serial.println(timestring);
 }
