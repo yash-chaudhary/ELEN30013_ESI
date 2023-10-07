@@ -13,7 +13,7 @@
 // MQ135 Sensor
 int co2_ppm;
 int sensorPinAnalogue = A1;
-MQ135 gasSensor(sensorPinAnalogue, 230);
+MQ135 gasSensor(sensorPinAnalogue, 200);
 
 // RTC timer
 int clk_pin = 11;
@@ -77,7 +77,7 @@ void loop() {
   float curr_temp = get_temp();           // get current temperature (deg C)
   float curr_humidity = get_humidity();   // get current humidity (%)
   bool is_day = get_light();              // get light or day (bool)
-  //co2_ppm = analogRead(ldrPin);
+  co2_ppm = analogRead(ldrPin);
   buzz_LED(co2_ppm);			                // update buzzer and led
 
   int toneDuration = map(co2_ppm, 5, 1000, 1000, 10);
@@ -196,7 +196,7 @@ void buzz_LED(float co2_ppm) {
 
   // setColour(redValue, greenValue, 0);
 
-  int toneFreq = map(co2_ppm, 5, 1000, 31, 1500);
+  int toneFreq = map(co2_ppm, 5, 1000, 31, 1800);
   Serial.print("Buzz Freq: ");
   Serial.println(toneFreq);
 
