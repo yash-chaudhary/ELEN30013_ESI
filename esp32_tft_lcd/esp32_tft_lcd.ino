@@ -9,6 +9,9 @@
 #include "warning_icon.h" // 45 x 45 px
 #include "cross_icon.h"   // 45 x 45 px
 #include "danger_icon.h"  // 45 x 45 px
+#include <SoftwareSerial.h> // default software serial library
+
+#define baudrate 9600
 
 TFT_eSPI tft = TFT_eSPI();
 
