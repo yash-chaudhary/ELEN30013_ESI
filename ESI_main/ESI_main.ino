@@ -6,9 +6,17 @@
 #include "MQ135.h"
 #include <ThreeWire.h>  
 #include <RtcDS1302.h>
+#include <SoftwareSerial.h> // default software serial library
 
 // defines
 #define DHT11_PIN 3
+
+// software serial
+const int rxPin = 6;
+const int txPin = 7;
+
+// Set up a new SoftwareSerial object
+SoftwareSerial mySerial (rxPin, txPin);
 
 // MQ135 Sensor
 int co2_ppm;
@@ -59,6 +67,7 @@ void buzz_LED(float co2_ppm);
 // setup
 void setup() {
   Serial.begin(9600);   // 9600 bits per second baud rate
+  mySerial.begin(9600); // start software serial
   pinMode(redPin, OUTPUT);
   pinMode(greenPin, OUTPUT);
   pinMode(buzzPin, OUTPUT);
@@ -159,10 +168,12 @@ bool get_light() {
   if (ldrReading <= ldrThreshold) {
     Serial.print("It's NIGHT: ");
     Serial.println(ldrReading);
+    mySerial.println(ldrReading);
     return false;
   } else {
     Serial.print("It's DAY: ");
     Serial.println(ldrReading);
+    mySerial.println(ldrReading);
     return true;
   }
 }

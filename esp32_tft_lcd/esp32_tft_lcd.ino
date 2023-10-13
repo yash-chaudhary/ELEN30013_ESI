@@ -13,6 +13,11 @@
 
 #define baudrate 9600
 
+int rxPin = 4;
+int txPin = 5;
+
+SoftwareSerial mySerial (rxPin, txPin);
+
 TFT_eSPI tft = TFT_eSPI();
 
 // Meter colour schemes
@@ -42,6 +47,7 @@ int ypos = 62;
 int gap = 15;
 int radius = 83;
 
+int reading = 0;
 
 // graph stuff
 #include <TFT_eWidget.h>               // Widget library
@@ -55,6 +61,8 @@ TraceWidget tr1 = TraceWidget(&gr);    // Graph trace 1
 void setup() {
   
   Serial.begin(9600);
+  mySerial.begin(9600);
+  
   while (!Serial);
 
   tft.init();                     // initialise TFT LCD display
@@ -113,6 +121,17 @@ void setup() {
 
 void loop(void) {
 
+    String incomingString;
+
+    if(mySerial.available() > 0) {
+
+    // create incomingString of string type and read unitl a newline terminating character is reached
+    incomingString = mySerial.readStringUntil('\n');
+    Serial.println(incomingString);
+
+    }
+
+  
     drawContainers();
     setName();
     setActivity();
@@ -122,7 +141,7 @@ void loop(void) {
     setStatus(AQ_GOOD);
 
     // air quality meter
-    int reading = 925;
+    reading = incomingString.toInt();
     ringMeter(reading,0,999, xpos, ypos, radius,"PPM",GREEN2RED); // Draw analogue meter
 
     //delay(5000);
