@@ -27,6 +27,7 @@ SoftwareSerial mySerial (rxPin, txPin);
 
 // serial communication data 
 String incomingString;
+String values[6];
 
 // tft UI library instantiation
 TFT_eSPI tft = TFT_eSPI();
@@ -47,10 +48,10 @@ int radius = 83;
 int reading = 0;
 
 // air quality status enums
-#define AQ_GOOD 0
-#define AQ_FAIR 1
-#define AQ_POOR 2
-#define AQ_DANGER 3
+// #define AQ_GOOD 0
+// #define AQ_FAIR 1
+// #define AQ_POOR 2
+// #define AQ_DANGER 3
 
 // custom colors
 #define TFT_GREY 0x528a
@@ -59,6 +60,9 @@ uint16_t textColor = tft.color565(0xeb, 0x8e, 0x21);
 // graph configurations
 GraphWidget gr = GraphWidget(&tft); 
 TraceWidget tr1 = TraceWidget(&gr); // traces are drawn on tft using graph instance
+
+// control execution
+static unsigned long last;
 
 
 //////////////////////////////////////////
@@ -126,20 +130,36 @@ void loop(void) {
 
         // create incomingString of string type and read unitl a newline terminating character is reached
         incomingString = mySerial.readStringUntil('\n');
+        // Split the input string into individual values based on commas
+        int numValues = split(incomingString, values, ',');
+  
         Serial.println(incomingString);
     }
 
+    // pull out return values
+    String ppm = values[0];
+    String temp = values[1];
+    String humidity = values[2];
+    String isDay = values[3];
+    String date = values[4];
+    String time = values[5];
+
     drawContainers();
     setName();
-    setActivity();
-    setTemperature();
-    setHumidity();
-
-    setStatus(AQ_GOOD);
+    setActivity(isDay, date, time);
+    setTemperature(temp);
+    setHumidity(humidity);
 
     // air quality meter
-    reading = incomingString.toInt();
+    if (ppm == "") {
+      reading = 0;
+    } else {
+      reading = ppm.toInt();
+    }
+    
     ringMeter(reading,0,999, xpos, ypos, radius,"PPM",GREEN2RED); // Draw analogue meter
+
+    setStatus(reading);
 
     //delay(5000);
     static uint32_t plotTime = millis();
@@ -228,7 +248,7 @@ void setName() {
 }
 
 // a function that sets the value in the top bar  
-void setActivity() {
+void setActivity(String isDay, String date, String time) {
   
   // position of the "mode" label
   tft.setCursor(240, 15);
@@ -238,27 +258,42 @@ void setActivity() {
   // position of the "mode" value (light or dark) label
   tft.setCursor(235, 30);
   tft.setTextSize(1);
-  tft.println("(Dark)");
 
-  // display mode bitmap (moon or sun)
-  tft.pushImage(280,3,45,45,moon_icon);  // display moon bitmap
+  if (isDay == " " || isDay == "0") {
+      tft.println("(Dark)");
+       // display mode bitmap (moon or sun)
+      tft.pushImage(280,3,45,45,moon_icon);  // display moon bitmap
+  } 
+  else {
+    tft.println("(Light)");
+  }
 
   // position of the date
   tft.setCursor(355,8);
   tft.setTextSize(2);
-  tft.println("08/10/2023");
+  if (date == "") {
+    tft.println("--/--/----");
+  }
+  else {
+     tft.println(date);
+  }
 
   // position of the time
   tft.setCursor(355,28);
   tft.setTextSize(2);
-  tft.println("19.03.59");
+  if (time == "") {
+    tft.println("88.88.88");
+  } 
+  else {
+    tft.println(time);
+  }
   tft.setCursor(455,25);
   tft.setTextSize(1);
   tft.println("PM");
 }
 
 // function that displays displays the temperature
-void setTemperature() {
+void setTemperature(String temp) {
   uint16_t textColor = tft.color565(0xeb, 0x8e, 0x21); // convert color hex code to RGB
   tft.setTextColor(textColor);
   tft.setCursor(210,65);
@@ -270,7 +305,14 @@ void setTemperature() {
   tft.setTextColor(TFT_WHITE);
   tft.setCursor(210,100);
   tft.setTextSize(7);
-  tft.println("27");
+
+  if (temp = "") {
+    tft.println("--");
+  }
+  else {
+     tft.println(temp);
+  }
+
 
   tft.fillRect(210, 160, 120, 15, textColor);
 
@@ -284,7 +326,7 @@ void setTemperature() {
 }
 
 // function that displays the humidity
-void setHumidity() {
+void setHumidity(String humidity) {
   uint16_t textColor = tft.color565(0xeb, 0x8e, 0x21); // convert color hex code to RGB
   tft.setTextColor(textColor);
   tft.setCursor(350,65);
@@ -296,7 +338,13 @@ void setHumidity() {
   tft.setTextColor(TFT_WHITE);
   tft.setCursor(350,100);
   tft.setTextSize(7);
-  tft.println("65");
+
+  if (humidity = "") {
+      tft.println("--");
+  }
+  else {
+    tft.println(humidity);
+  }
 
   tft.fillRect(350, 160, 120, 15, textColor);
 
@@ -308,13 +356,27 @@ void setHumidity() {
 }
 
 
-void setStatus(byte state) {
+void setStatus(int reading) {
   // position of the "mode" label
   tft.setCursor(10, 287);
   tft.setTextSize(2);
   tft.println("Status:");
 
+  byte state;
   String msg_state;
+
+  if (reading < 400) {
+    state = 0;
+  }
+  else if (reading >= 400 && reading < 700) {
+    state = 1;
+  } 
+  else if (reading >= 700 && reading < 900) {
+    state = 2;
+  }
+  else if (reading >= 900) {
+    state = 3;
+  }
 
   switch(state) {
     case 0: tft.pushImage(95,271,45,45,tick_icon); msg_state="(GOOD)"; break;       // display green tick
@@ -480,6 +542,25 @@ unsigned int rainbow(byte value)
     red = 31;
   }
   return (red << 11) + (green << 5) + blue;
+}
+
+int split(String input, String output[], char delimiter) {
+  int tokenIndex = 0;
+  int startIndex = 0;
+  
+  for (int i = 0; i < input.length(); i++) {
+    if (input.charAt(i) == delimiter) {
+      output[tokenIndex] = input.substring(startIndex, i);
+      startIndex = i + 1;
+      tokenIndex++;
+    }
+  }
+  
+  // Add the last token after the last comma
+  output[tokenIndex] = input.substring(startIndex);
+  tokenIndex++;
+  
+  return tokenIndex;
 }
 
 
