@@ -22,8 +22,11 @@
 // software serial configurations
 int rxPin = 4;
 int txPin = 5;
-#define baudrate 9600
+#define baudrate 9600   // baudrate matches speed of data transmission coming from ArduinoUNO
 SoftwareSerial mySerial (rxPin, txPin);
+
+// serial communication data 
+String incomingString;
 
 // tft UI library instantiation
 TFT_eSPI tft = TFT_eSPI();
@@ -63,63 +66,52 @@ TraceWidget tr1 = TraceWidget(&gr); // traces are drawn on tft using graph insta
 //////////////////////////////////////////
 void setup() {
   
-  Serial.begin(9600);
-  mySerial.begin(9600);
+    // start serial monitor
+    Serial.begin(9600); 
+    while (!Serial);
+
+    // start software serial
+    mySerial.begin(baudrate);
+    while (!mySerial);
   
-  while (!Serial);
+    // tft LCD setup
+    tft.init();                     // initialise TFT LCD display
+    tft.fillScreen(TFT_BLACK);      // set default background color to black
+    tft.setRotation(1);             // set LCD to landscape orientation
+    tft.setTextColor(TFT_WHITE);    // global text color
+    tft.setSwapBytes(true);         // allow use of images (bitmaps)
 
-  tft.init();                     // initialise TFT LCD display
+    // graph initialisations
+    gr.createGraph(200, 100, tft.color565(5, 5, 5));   // Graph area is 200 pixels wide, 150 high, dark grey background
+    gr.setGraphScale(0.0, 100.0, -50.0, 50.0);         // x scale units is from 0 to 100, y scale units is -50 to 50
 
-  //uint16_t bgColor = 0x18c3;
-  // uint16_t bgColor = tft.color565(0x1a, 0x1a, 0x1a); // convert color hex code to RGB
+    // X grid starts at 0 with lines every 10 x-scale units
+    // Y grid starts at -50 with lines every 25 y-scale units
+    // blue grid
+    gr.setGraphGrid(0.0, 10.0, -50.0, 25.0, TFT_BLUE);
 
-  tft.fillScreen(TFT_BLACK);      // set default background color to black
-  tft.setRotation(1);             // set LCD to landscape orientation
-  tft.setTextSize(1);             // Set the text size
-  tft.setTextColor(TFT_WHITE);    // Set the text color
-  tft.setSwapBytes(true);         // setup needed since using images (bitmaps)
 
-  // graph stuff
+    gr.drawGraph(240, 195);       // Draw empty graph, top left corner at 40,10 on TFT
+    tr1.startTrace(TFT_RED);      // Start a trace with using red and another with green
+    tr1.addPoint(0.0, 0.0);        // Add points on graph to trace 1 using graph scale factors
 
-  // Graph area is 200 pixels wide, 150 high, dark grey background
-  gr.createGraph(200, 100, tft.color565(5, 5, 5));
+    // Get x,y pixel coordinates of any scaled point on graph and ring that point.
+    tft.drawCircle(gr.getPointX(50.0), gr.getPointY(0.0), 5, TFT_MAGENTA);
 
-  // x scale units is from 0 to 100, y scale units is -50 to 50
-  gr.setGraphScale(0.0, 100.0, -50.0, 50.0);
+    // Draw the x axis scale
+    tft.setTextDatum(TC_DATUM); // Top centre text datum
+    tft.drawNumber(0, gr.getPointX(0.0), gr.getPointY(-50.0) + 3);
+    tft.drawNumber(50, gr.getPointX(50.0), gr.getPointY(-50.0) + 3);
+    tft.drawNumber(100, gr.getPointX(100.0), gr.getPointY(-50.0) + 3);
 
-  // X grid starts at 0 with lines every 10 x-scale units
-  // Y grid starts at -50 with lines every 25 y-scale units
-  // blue grid
-  gr.setGraphGrid(0.0, 10.0, -50.0, 25.0, TFT_BLUE);
+    // Draw the y axis scale
+    tft.setTextDatum(MR_DATUM); // Middle right text datum
+    tft.drawNumber(-50, gr.getPointX(0.0), gr.getPointY(-50.0));
+    tft.drawNumber(0, gr.getPointX(0.0), gr.getPointY(0.0));
+    tft.drawNumber(50, gr.getPointX(0.0), gr.getPointY(50.0));
 
-  // Draw empty graph, top left corner at 40,10 on TFT
-  gr.drawGraph(240, 195);
-
-  // Start a trace with using red and another with green
-  tr1.startTrace(TFT_RED);
-
-  // Add points on graph to trace 1 using graph scale factors
-  tr1.addPoint(0.0, 0.0);
-
-  // Get x,y pixel coordinates of any scaled point on graph
-  // and ring that point.
-  tft.drawCircle(gr.getPointX(50.0), gr.getPointY(0.0), 5, TFT_MAGENTA);
-
-  // Draw the x axis scale
-  tft.setTextDatum(TC_DATUM); // Top centre text datum
-  tft.drawNumber(0, gr.getPointX(0.0), gr.getPointY(-50.0) + 3);
-  tft.drawNumber(50, gr.getPointX(50.0), gr.getPointY(-50.0) + 3);
-  tft.drawNumber(100, gr.getPointX(100.0), gr.getPointY(-50.0) + 3);
-
-  // Draw the y axis scale
-  tft.setTextDatum(MR_DATUM); // Middle right text datum
-  tft.drawNumber(-50, gr.getPointX(0.0), gr.getPointY(-50.0));
-  tft.drawNumber(0, gr.getPointX(0.0), gr.getPointY(0.0));
-  tft.drawNumber(50, gr.getPointX(0.0), gr.getPointY(50.0));
-
-  // Restart traces with new colours
-  tr1.startTrace(TFT_WHITE);
-
+    // Restart traces with new colours
+    tr1.startTrace(TFT_WHITE);
 }
 
 
@@ -128,17 +120,15 @@ void setup() {
 //////////////////////////////////////////
 void loop(void) {
 
-    String incomingString;
-
+    
+    // check data in serial bugger
     if(mySerial.available() > 0) {
 
-    // create incomingString of string type and read unitl a newline terminating character is reached
-    incomingString = mySerial.readStringUntil('\n');
-    Serial.println(incomingString);
-
+        // create incomingString of string type and read unitl a newline terminating character is reached
+        incomingString = mySerial.readStringUntil('\n');
+        Serial.println(incomingString);
     }
 
-  
     drawContainers();
     setName();
     setActivity();
