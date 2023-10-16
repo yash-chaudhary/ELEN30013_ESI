@@ -29,9 +29,9 @@ RtcDS1302<ThreeWire> Rtc(myWire);
 
 // thermistor variables
 dht DHT;
-float curr_humidity;
+int curr_humidity;
 int thermistorPin = A4;
-float curr_temp;
+int curr_temp;
 float Vo;
 float Rt;
 float T;
@@ -61,10 +61,10 @@ unsigned long previousPacketMillis = 0;
 // function prototypes
 void run_normal();
 void run_demo();
-void printSerial(int air_ppm, float curr_temp, int curr_humidity, bool is_day);
+void printSerial(int air_ppm, int curr_temp, int curr_humidity, bool is_day);
 int get_air_ppm();
-float get_temp();
-float get_humidity();
+int get_temp();
+int get_humidity();
 bool get_light();
 void buzz_LED(int air_ppm);
 void setColour (int redValue, int greenValue);
@@ -160,7 +160,7 @@ void run_demo() {
   delay(1000);
 
   int demo_ppm = 0;
-  float demo_temp = 0;
+  int demo_temp = 0;
   int demo_humidity = 0;
   bool demo_is_day = true;
   
@@ -193,7 +193,7 @@ void run_demo() {
   }
 }
 
-void printSerial(int air_ppm, float curr_temp, int curr_humidity, bool is_day) {
+void printSerial(int air_ppm, int curr_temp, int curr_humidity, bool is_day) {
 
   RtcDateTime curr_time = Rtc.GetDateTime();
 
@@ -247,7 +247,7 @@ int get_air_ppm() {
 }
 
 // returns: current temperature in degrees celcius
-float get_temp() {
+int get_temp() {
   Vo = analogRead(thermistorPin);
   Vo = Vo * 5 / 1024;
   Rt = Vo * Ro / (5 - Vo);
@@ -258,9 +258,9 @@ float get_temp() {
 }
 
 // returns: current temperature as a % of water vapor in air
-float get_humidity() {
+int get_humidity() {
   int chk = DHT.read11(DHT11_PIN);
-  float H_DHT = DHT.humidity;
+  int H_DHT = DHT.humidity;
 
   return H_DHT;
 }
@@ -296,11 +296,11 @@ void buzz_LED(int air_ppm) {
     setColour(255, 0);
   }
 
-  int toneFreq = map(air_ppm, 5, 1000, 31, 1800);
+  int toneFreq = map(air_ppm, 0, 1000, 31, 1800);
   // Serial.print("Buzz Freq: ");
   // Serial.println(toneFreq);
 
-  int toneDuration = map(air_ppm, 5, 1000, 1000, 100);
+  int toneDuration = map(air_ppm, 0, 1000, 1000, 100);
   // Serial.print("Buzz Duration: ");
   // Serial.println(toneDuration);
 
