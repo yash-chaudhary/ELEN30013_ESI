@@ -1,26 +1,34 @@
 
+/*
+  Author: Yash Chaudhary
+  Date: 16/10/2023
+  NOTES: Ensure TFT LCD setup files have been properly setup
+*/
+
 // ILI9488 dimensions: 320 x 480
 
+// include libraries and files
 #include "SPI.h"
 #include "TFT_eSPI.h"
-#include "nose_icon.h"
-#include "moon_icon.h"    // 45 x 45 px
-#include "tick_icon.h"    // 45 x 45 px
-#include "warning_icon.h" // 45 x 45 px
-#include "cross_icon.h"   // 45 x 45 px
-#include "danger_icon.h"  // 45 x 45 px
+#include "nose_icon.h"      // bitmap 48 x 48 px 
+#include "moon_icon.h"      // bitmap 45 x 45 px
+#include "tick_icon.h"      // bitmap 45 x 45 px
+#include "warning_icon.h"   // bitmap 45 x 45 px
+#include "cross_icon.h"     // bitmap 45 x 45 px
+#include "danger_icon.h"    // bitmap 45 x 45 px
 #include <SoftwareSerial.h> // default software serial library
+#include <TFT_eWidget.h>    // widget library (for graphing)
 
-#define baudrate 9600
-
+// software serial configurations
 int rxPin = 4;
 int txPin = 5;
-
+#define baudrate 9600
 SoftwareSerial mySerial (rxPin, txPin);
 
+// tft UI library instantiation
 TFT_eSPI tft = TFT_eSPI();
 
-// Meter colour schemes
+// arc gauge color schemes
 #define RED2RED 0
 #define GREEN2GREEN 1
 #define BLUE2BLUE 2
@@ -28,36 +36,31 @@ TFT_eSPI tft = TFT_eSPI();
 #define GREEN2RED 4
 #define RED2GREEN 5
 
+// arc meter configurations
+int xpos = 18;
+int ypos = 62;
+int gap = 15;
+int radius = 83;
+int reading = 0;
+
+// air quality status enums
 #define AQ_GOOD 0
 #define AQ_FAIR 1
 #define AQ_POOR 2
 #define AQ_DANGER 3
 
-//#define TFT_GREY 0x2104 // Dark grey 16 bit colour
+// custom colors
 #define TFT_GREY 0x528a
-
 uint16_t textColor = tft.color565(0xeb, 0x8e, 0x21);
 
-unsigned long total = 0;
-unsigned long tn = 0;
-
-// Draw a large meter
-int xpos = 18;
-int ypos = 62;
-int gap = 15;
-int radius = 83;
-
-int reading = 0;
-
-// graph stuff
-#include <TFT_eWidget.h>               // Widget library
-
-GraphWidget gr = GraphWidget(&tft);    // Graph widget
-
-// Traces are drawn on tft using graph instance
-TraceWidget tr1 = TraceWidget(&gr);    // Graph trace 1
+// graph configurations
+GraphWidget gr = GraphWidget(&tft); 
+TraceWidget tr1 = TraceWidget(&gr); // traces are drawn on tft using graph instance
 
 
+//////////////////////////////////////////
+/*            Setup Function            */
+//////////////////////////////////////////
 void setup() {
   
   Serial.begin(9600);
@@ -119,6 +122,10 @@ void setup() {
 
 }
 
+
+//////////////////////////////////////////
+/*          Superloop Function          */
+//////////////////////////////////////////
 void loop(void) {
 
     String incomingString;
