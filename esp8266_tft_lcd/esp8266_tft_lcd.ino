@@ -13,12 +13,18 @@
 // include libraries and files
 #include "SPI.h"
 #include "TFT_eSPI.h"
-#include "nose_icon.h"      // bitmap 48 x 48 px 
+#include "light_nose_icon.h"      // bitmap 48 x 48 px 
+#include "dark_nose_icon.h"      // bitmap 48 x 48 px 
 #include "moon_icon.h"      // bitmap 45 x 45 px
-#include "tick_icon.h"      // bitmap 45 x 45 px
-#include "warning_icon.h"   // bitmap 45 x 45 px
-#include "cross_icon.h"     // bitmap 45 x 45 px
-#include "danger_icon.h"    // bitmap 45 x 45 px
+#include "sun_icon.h"      // bitmap 45 x 45 px
+#include "dark_tick_icon.h"      // bitmap 45 x 45 px
+#include "dark_warning_icon.h"   // bitmap 45 x 45 px
+#include "dark_cross_icon.h"     // bitmap 45 x 45 px
+#include "dark_danger_icon.h"    // bitmap 45 x 45 px
+#include "light_tick_icon.h"      // bitmap 45 x 45 px
+#include "light_warning_icon.h"   // bitmap 45 x 45 px
+#include "light_cross_icon.h"     // bitmap 45 x 45 px
+#include "light_danger_icon.h"    // bitmap 45 x 45 px
 #include <SoftwareSerial.h> // default software serial library
 #include <TFT_eWidget.h>    // widget library (for graphing)
 
@@ -53,11 +59,14 @@ int reading = 0;
 // custom colors
 #define TFT_GREY 0x528a
 uint16_t textColor = tft.color565(0xeb, 0x8e, 0x21);
+bool prevLightMode = false;
+bool lightMode = false;
 
 // graph configurations
 GraphWidget gr = GraphWidget(&tft); 
 TraceWidget tr1 = TraceWidget(&gr); // traces are drawn on tft using graph instance
 TraceWidget tr2 = TraceWidget(&gr); // traces are drawn on tft using graph instance
+float static gx = 0.0;
 
 // control execution
 static unsigned long interval;
@@ -67,6 +76,10 @@ static unsigned long interval;
 /*                          Setup Function                          */
 //####################################################################
 void setup() {
+
+    // start serial monitor
+    Serial.begin(baudrate);
+    while (!Serial);
 
     // start software serial
     mySerial.begin(baudrate);
@@ -113,7 +126,7 @@ void setup() {
 //####################################################################
 void loop(void) {
 
-    if (millis() - interval >= 2000) {
+    if (millis() - interval >= 500) {
     
         // check data in serial buffer
         if(mySerial.available() > 0) {
@@ -131,7 +144,56 @@ void loop(void) {
         String isDay = values[3];
         String date = values[4];
         String time = values[5];
-        
+
+        // set lightMode state globally
+        if (isDay == "0") {
+            lightMode = false;
+        } else if (isDay == "1") {
+            lightMode = true;
+        }
+
+        // make LCD fill screen only if new lightMode different from previousLightMode
+        // graph is drawn again when mode is changed ensuring styles are updated
+        if (lightMode != prevLightMode) {
+            prevLightMode = lightMode;
+            if (lightMode == false) {
+                tft.fillScreen(TFT_BLACK);
+                tft.setTextColor(TFT_WHITE, TFT_BLACK);
+                gr.createGraph(240, 75, TFT_BLACK);
+                gr.setGraphGrid(0.0, 500.0, 0, 600, TFT_WHITE);
+                gr.setGraphScale(0.0, 5000.0, 0.0, 1800.0);    // x scale units is from 0 to 100, y scale units is -50 to 50
+                gr.drawGraph(230, 235);     // draw empty graph at 230, 235 on display
+                tr1.startTrace(textColor);
+                tr2.startTrace(textColor);
+                tft.setTextDatum(MR_DATUM); // Middle right text datum
+                tft.setTextSize(1);
+                tft.drawNumber(0, gr.getPointX(0.0), gr.getPointY(0.0));
+                tft.drawNumber(600, gr.getPointX(0.0), gr.getPointY(600.0));
+                tft.drawNumber(1200, gr.getPointX(0.0), gr.getPointY(1200.0));
+                tft.drawNumber(1800, gr.getPointX(0.0), gr.getPointY(1800.0));
+                gx = 0;
+                
+            } else if (lightMode == true) {
+                tft.fillScreen(TFT_WHITE);
+                tft.setTextColor(TFT_BLACK, TFT_WHITE);
+                gr.createGraph(240, 75, TFT_WHITE);
+                gr.setGraphGrid(0.0, 500.0, 0, 600, TFT_BLACK);
+                gr.setGraphScale(0.0, 5000.0, 0.0, 1800.0);    // x scale units is from 0 to 100, y scale units is -50 to 50
+                gr.drawGraph(230, 235);     // draw empty graph at 230, 235 on display
+                tr1.startTrace(textColor);
+                tr2.startTrace(textColor);
+                tft.setTextDatum(MR_DATUM); // Middle right text datum
+                tft.setTextSize(1);
+                tft.drawNumber(0, gr.getPointX(0.0), gr.getPointY(0.0));
+                tft.drawNumber(600, gr.getPointX(0.0), gr.getPointY(600.0));
+                tft.drawNumber(1200, gr.getPointX(0.0), gr.getPointY(1200.0));
+                tft.drawNumber(1800, gr.getPointX(0.0), gr.getPointY(1800.0));
+                gx = 0;
+            }
+        }
+
+        // NOTE: need to draw new graph when color changes as grid wont change otherwise
+
         drawContainers();                   // draw bounding containers
         setName();                          // set top bar name and bitmap
         setActivity(isDay, date, time);     // set mode, date, time
@@ -151,19 +213,18 @@ void loop(void) {
         // set air quality status
         setStatus(reading);
 
-        // initialise graph point paramters
-        static float gx = 0.0;  
+        // initialise graph point paramters  
         long gy_tmp, delta;
 
         // map ppm value to know frequency range (31 Hz to 1800 Hz)
         long gy = map(values[0].toInt(), 0, 1000, 31, 1800);
         
         // setup text label for frequency graph container
-        tft.setTextColor(textColor, TFT_BLACK);
+        lightMode ? tft.setTextColor(textColor, TFT_WHITE) : tft.setTextColor(textColor, TFT_BLACK);
         tft.setCursor(210, 200);
         tft.setTextSize(2);
         tft.println("Buzzer Freq (Hz):");
-        tft.setTextColor(TFT_WHITE, TFT_BLACK);
+        lightMode ? tft.setTextColor(TFT_BLACK, TFT_WHITE) : tft.setTextColor(TFT_WHITE, TFT_BLACK);
         tft.setCursor(420, 200);
         tft.setTextSize(2);
 
@@ -190,11 +251,11 @@ void loop(void) {
 
         // Add a new point on each trace
         tr1.addPoint(gx, gy);
-        tr2.addPoint(gx+1.0, gy+1.0);        // Add points on graph to trace 1 using graph scale factors
+        tr2.addPoint(gx+1.0, gy+1.0);   // Add points on graph to trace 1 using graph scale factors
 
         // Create next plot point   
         gx += 500;
-        // gy += delta;  
+        gy += delta;  
 
         // if the end of the graph is reached start 2 new traces
         // note that each new gridpoint in x-axis is 500 
@@ -207,7 +268,7 @@ void loop(void) {
         }
 
         // increase interval
-        interval += 2000;
+        interval += 500;
     }
 }
 
@@ -217,7 +278,15 @@ void loop(void) {
 //####################################################################
 void drawContainers() {
 
-    uint16_t lineColor = TFT_WHITE;
+    uint16_t lineColor;
+
+    if (lightMode) {
+        lineColor = TFT_BLACK;
+    }
+    else {
+        lineColor = TFT_WHITE;
+    }
+
 
     // outer container with thickness of 2 and background of  
     tft.drawFastHLine(0, 0, 479, lineColor);  // top edge
@@ -266,7 +335,10 @@ void drawContainers() {
 // (void) function that sets the name and bitmap for the project     #
 //####################################################################
 void setName() {
-    tft.pushImage(2,2,48,48,nose_icon);  // display nose bit map
+    lightMode ? tft.pushImage(2,2,48,48,light_nose_icon): tft.pushImage(2,2,48,48,dark_nose_icon);  // display nose bit map
+    if (lightMode) {
+        tft.drawFastVLine(50, 2, 49, TFT_BLACK);
+    }
     tft.setCursor(58, 15);
     tft.setTextSize(3);
     tft.println("SNIFER"); // set label for project name
@@ -279,18 +351,19 @@ void setName() {
 void setActivity(String isDay, String date, String time) {
   
     // position of the "mode" label
-    tft.setCursor(240, 15);
+    tft.setCursor(235, 15);
     tft.setTextSize(1);
     tft.println("Mode:");
 
     // position of the "mode" value (light or dark) label
-    tft.setCursor(235, 30);
+    tft.setCursor(230, 30);
     tft.setTextSize(1);
+
+    lightMode ? tft.pushImage(280,3,45,45,sun_icon) : tft.pushImage(280,3,45,45,moon_icon);
 
     if (isDay == " " || isDay == "0") {
         tft.println("(Dark) ");
         // display mode bitmap (moon or sun)
-        tft.pushImage(280,3,45,45,moon_icon);  // display moon bitmap
     } else {
         tft.println("(Light)");
     }
@@ -331,14 +404,14 @@ void setActivity(String isDay, String date, String time) {
 //####################################################################
 void setTemperature(String temp) {
     uint16_t textColor = tft.color565(0xeb, 0x8e, 0x21); // convert color hex code to RGB
-    tft.setTextColor(textColor, TFT_BLACK);
+    lightMode ? tft.setTextColor(textColor, TFT_WHITE) : tft.setTextColor(textColor, TFT_BLACK);
     tft.setCursor(210,65);
     tft.setTextSize(2);
     tft.println("Temp");
 
     tft.fillTriangle(321, 53, 336, 68, 336, 53, textColor);
 
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    lightMode ? tft.setTextColor(TFT_BLACK, TFT_WHITE) : tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.setCursor(210,100);
     tft.setTextSize(7);
 
@@ -353,7 +426,7 @@ void setTemperature(String temp) {
 
     tft.drawCircle(305, 113, 3, textColor);
     tft.drawCircle(305, 113, 4, textColor);
-    tft.setTextColor(textColor, TFT_BLACK);
+    lightMode ? tft.setTextColor(textColor, TFT_WHITE) : tft.setTextColor(textColor, TFT_BLACK);
     tft.setCursor(310,115);
     tft.setTextSize(3);
     tft.println("C");
@@ -366,14 +439,15 @@ void setTemperature(String temp) {
 //####################################################################
 void setHumidity(String humidity) {
     uint16_t textColor = tft.color565(0xeb, 0x8e, 0x21); // convert color hex code to RGB
-    tft.setTextColor(textColor, TFT_BLACK);
+    lightMode ? tft.setTextColor(textColor, TFT_WHITE) : tft.setTextColor(textColor, TFT_BLACK);
+
     tft.setCursor(350,65);
     tft.setTextSize(2);
     tft.println("Humidity");
 
     tft.fillTriangle(460, 53, 475, 68, 475, 53, textColor);
 
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    lightMode ? tft.setTextColor(TFT_BLACK, TFT_WHITE) : tft.setTextColor(TFT_WHITE, TFT_BLACK);;
     tft.setCursor(350,100);
     tft.setTextSize(7);
 
@@ -386,11 +460,11 @@ void setHumidity(String humidity) {
 
     tft.fillRect(350, 160, 120, 15, textColor);
 
-    tft.setTextColor(textColor, TFT_BLACK);
+    lightMode ? tft.setTextColor(textColor, TFT_WHITE) : tft.setTextColor(textColor, TFT_BLACK);
     tft.setCursor(445,115);
     tft.setTextSize(3);
     tft.println("%");
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    lightMode ? tft.setTextColor(TFT_BLACK, TFT_WHITE) : tft.setTextColor(TFT_WHITE, TFT_BLACK);
 }
 
 
@@ -420,17 +494,37 @@ void setStatus(int reading) {
 
     // switch icon and state label based on state
     switch(state) {
-        case 0: tft.pushImage(95,271,45,45,tick_icon); msg_state="(GOOD)  "; break;       // display green tick
-        case 1: tft.pushImage(95,271,45,45,warning_icon); msg_state="(FAIR)  "; break;    // display red cross
-        case 2: tft.pushImage(95,271,45,45,cross_icon); msg_state="(POOR)  "; break;      // display warning sign
-        case 3: tft.pushImage(95,271,45,45,danger_icon); msg_state="(DANGER)"; break;   // display skull and bones
-        default: tft.pushImage(95,271,45,45,tick_icon); msg_state="(GOOD) "; break;       // display green tick
+        case 0: {
+            lightMode ? tft.pushImage(95,271,45,45,light_tick_icon) : tft.pushImage(95,271,45,45,dark_tick_icon);       // display green tick
+            msg_state="(GOOD)  ";
+            break;       
+        }
+        case 1: {
+            lightMode ? tft.pushImage(95,271,45,45,light_warning_icon) : tft.pushImage(95,271,45,45,dark_warning_icon);  // display red cross
+            msg_state="(FAIR)  ";
+            break;
+        }
+        case 2: {
+            lightMode ? tft.pushImage(95,271,45,45,light_cross_icon) : tft.pushImage(95,271,45,45,dark_cross_icon);     // display warning sign
+            msg_state="(POOR)  "; 
+            break;
+        }
+        case 3: {
+            lightMode ? tft.pushImage(95,271,45,45,light_danger_icon) : tft.pushImage(95,271,45,45,dark_danger_icon);   // display skull and bones
+            msg_state="(DANGER)"; 
+            break; 
+        } 
+        default: {
+            lightMode ? tft.pushImage(95,271,45,45,light_tick_icon) : tft.pushImage(95,271,45,45,dark_tick_icon);       // default display green tick
+            msg_state="(GOOD)  ";
+            break;  
+        }      
     }
 
     // position of the "mode" value (light or dark) label
     tft.setCursor(145, 290);
     tft.setTextSize(1);
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    lightMode ? tft.setTextColor(TFT_BLACK, TFT_WHITE) : tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.println(msg_state);
 }
 
@@ -500,9 +594,9 @@ int ringMeter(int value, int vmin, int vmax, int x, int y, int r, const char *un
     buf[len] = ' '; buf[len+1] = 0; // Add blanking space and terminator, helps to centre text too!
     // Set the text colour to default
     tft.setTextSize(2);
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    // lightMode ? tft.setTextColor(TFT_BLACK, TFT_WHITE) : tft.setTextColor(TFT_WHITE, TFT_BLACK);
     // Uncomment next line to set the text colour to the last segment value!
-    tft.setTextColor(colour, TFT_BLACK);
+    lightMode ? tft.setTextColor(colour, TFT_WHITE) : tft.setTextColor(colour, TFT_BLACK);
     tft.setTextDatum(MC_DATUM);
     // Print value, if the meter is large then use big font 8, othewise use 4
     if (r > 84) {
@@ -516,22 +610,22 @@ int ringMeter(int value, int vmin, int vmax, int x, int y, int r, const char *un
     tft.setTextSize(1);
     tft.setTextPadding(0);
     // Print units, if the meter is large then use big font 4, othewise use 2
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    lightMode ? tft.setTextColor(TFT_BLACK, TFT_WHITE) : tft.setTextColor(TFT_WHITE, TFT_BLACK);
     if (r > 84) tft.drawString(units, x, y + 60, 4); // Units display
     else {
         //tft.drawString(units, x, y + 35, 2); // Units display
         tft.setTextSize(2);
-        tft.setTextColor(TFT_WHITE, TFT_BLACK);
+        lightMode ? tft.setTextColor(TFT_BLACK, TFT_WHITE) : tft.setTextColor(TFT_WHITE, TFT_BLACK);
         tft.setCursor(x-15,y+27);
         tft.println("PPM");
     }
 
     // label
     tft.setTextSize(2);
-    tft.setTextColor(textColor, TFT_BLACK);
+    lightMode ? tft.setTextColor(textColor, TFT_WHITE) : tft.setTextColor(textColor, TFT_BLACK);
     tft.setCursor(x-65,y+85);
     tft.println("Air Quality");
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    lightMode ? tft.setTextColor(TFT_BLACK, TFT_WHITE) : tft.setTextColor(TFT_WHITE, TFT_BLACK);
 
     // triangle
     //tft.fillTriangle(181, 53, 196, 68, 196, 53, textColor);
