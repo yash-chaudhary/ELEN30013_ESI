@@ -50,12 +50,6 @@ int gap = 15;
 int radius = 83;
 int reading = 0;
 
-// air quality status enums
-// #define AQ_GOOD 0
-// #define AQ_FAIR 1
-// #define AQ_POOR 2
-// #define AQ_DANGER 3
-
 // custom colors
 #define TFT_GREY 0x528a
 uint16_t textColor = tft.color565(0xeb, 0x8e, 0x21);
@@ -66,17 +60,13 @@ TraceWidget tr1 = TraceWidget(&gr); // traces are drawn on tft using graph insta
 TraceWidget tr2 = TraceWidget(&gr); // traces are drawn on tft using graph instance
 
 // control execution
-static unsigned long last;
+static unsigned long interval;
 
 
-//////////////////////////////////////////
-/*            Setup Function            */
-//////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+/*                          Setup Function                          */
+//////////////////////////////////////////////////////////////////////
 void setup() {
-  
-    // start serial monitor
-    Serial.begin(9600); 
-    while (!Serial);
 
     // start software serial
     mySerial.begin(baudrate);
@@ -90,24 +80,18 @@ void setup() {
     tft.setSwapBytes(true);                     // allow use of images (bitmaps)
 
     // graph initialisations
-    gr.createGraph(240, 75, tft.color565(5, 5, 5));   // Graph area is 200 pixels wide, 150 high, dark grey background
-    gr.setGraphScale(0.0, 5000.0, 0.0, 1800.0);         // x scale units is from 0 to 100, y scale units is -50 to 50
+    gr.createGraph(240, 75, TFT_BLACK);            // graph area is 240 pixels wide, 75 high, TFT_BLACK background
+    gr.setGraphScale(0.0, 5000.0, 0.0, 1800.0);    // x scale units is from 0 to 100, y scale units is -50 to 50
 
     // X grid starts at 0 with lines every 10 x-scale units
     // Y grid starts at -50 with lines every 25 y-scale units
-    // blue grid
     gr.setGraphGrid(0.0, 500.0, 0, 600, TFT_WHITE);
 
-
-    gr.drawGraph(230, 235);       // Draw empty graph, top left corner at 40,10 on TFT
-    tr1.startTrace(textColor);      // Start a trace with using red and another with green
-    tr2.startTrace(textColor);      // Start a trace with using red and another with green
-    tr1.addPoint(0.0, 0.0);        // Add points on graph to trace 1 using graph scale factors
-    tr2.startTrace(textColor);      // Start a trace with using red and another with green
-    tr2.addPoint(0.0+1.0, 0.0+1.0);        // Add points on graph to trace 1 using graph scale factors
-
-    // Get x,y pixel coordinates of any scaled point on graph and ring that point.
-    //tft.drawCircle(gr.getPointX(50.0), gr.getPointY(0.0), 5, TFT_WHITE);
+    gr.drawGraph(230, 235);         // draw empty graph at xpos = 230 and ypos = 235
+    tr1.startTrace(textColor);      // start a trace with line color as textColor 
+    tr1.addPoint(0.0, 0.0);         // add points on graph to trace 1 using graph scale factors
+    tr2.startTrace(textColor);      // start second trace (to increase line thickness)
+    tr2.addPoint(0.0+1.0, 0.0+1.0); // add points on graph to trace 1 using graph scale factors
 
     // Draw the x axis scale
     // tft.setTextDatum(TC_DATUM); // Top centre text datum
@@ -121,9 +105,6 @@ void setup() {
     tft.drawNumber(600, gr.getPointX(0.0), gr.getPointY(600.0));
     tft.drawNumber(1200, gr.getPointX(0.0), gr.getPointY(1200.0));
     tft.drawNumber(1800, gr.getPointX(0.0), gr.getPointY(1800.0));
-
-    // Restart traces with new colours
-    tr1.startTrace(textColor);
 }
 
 
@@ -132,7 +113,7 @@ void setup() {
 //////////////////////////////////////////
 void loop(void) {
 
-    if (millis() - last >= 500) {
+    if (millis() - interval >= 500) {
     
         // check data in serial bugger
         if(mySerial.available() > 0) {
@@ -231,7 +212,7 @@ void loop(void) {
           tr2.startTrace(textColor);
         }
       // }
-      last += 500;
+      interval += 500;
   }
 }
 
