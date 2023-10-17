@@ -48,6 +48,7 @@ bool is_day;
 const int redPin = A3;
 const int greenPin = A2;
 const int buzzPin = 4;
+int ledState = LOW;
 
 // Switch variables
 const int switchPin1 = 5;
@@ -56,6 +57,7 @@ int state1;
 int state2;
 unsigned long currentMillis = 0;
 unsigned long previousBuzzMillis = 0;
+unsigned long previousBlinkMillis = 0;
 unsigned long previousPacketMillis = 0;
 
 // function prototypes
@@ -283,17 +285,31 @@ void buzz_LED(int air_ppm) {
   // LED green blinking for good air, then to orange for mid air, red for poor air
   // Buzzer will, buzz faster and higher pitch for poorer air
 
-  if (air_ppm < 400) {
-    // Green
-    setColour(0, 255);
+  int blinkDuration = map(air_ppm, 0, 1000, 1000, 100);
 
-  } else if (air_ppm >= 400 && air_ppm <= 700) {
-    // Orange
-    setColour(255, 165);
+  if (currentMillis - previousBlinkMillis >= blinkDuration) {
+    if (ledState == LOW) {  // if the LED is off turn it on and vice-versa
+      ledState = HIGH;   //change led state for next iteration
+      setColour(0, 0);
 
-  } else if (air_ppm > 700) {
-    // Red
-    setColour(255, 0);
+    } else {
+      ledState = LOW;
+
+      if (air_ppm < 400) {
+        // Green
+        setColour(0, 255);
+
+      } else if (air_ppm >= 400 && air_ppm <= 700) {
+        // Orange
+        setColour(255, 165);
+
+      } else if (air_ppm > 700) {
+        // Red
+        setColour(255, 0);
+      }
+    }
+
+    previousBlinkMillis = millis();
   }
 
   int toneFreq = map(air_ppm, 0, 1000, 31, 1800);
