@@ -3,6 +3,9 @@
   Author: Yash Chaudhary
   Date: 16/10/2023
   NOTES: Ensure TFT LCD setup files have been properly setup
+
+  Some dodgy shortcuts taken:
+  i) added whitespace to smaller words to ensure longer words aren't visible after LCD re-write
 */
 
 // ILI9488 dimensions: 320 x 480
@@ -60,6 +63,7 @@ uint16_t textColor = tft.color565(0xeb, 0x8e, 0x21);
 // graph configurations
 GraphWidget gr = GraphWidget(&tft); 
 TraceWidget tr1 = TraceWidget(&gr); // traces are drawn on tft using graph instance
+TraceWidget tr2 = TraceWidget(&gr); // traces are drawn on tft using graph instance
 
 // control execution
 static unsigned long last;
@@ -79,43 +83,47 @@ void setup() {
     while (!mySerial);
   
     // tft LCD setup
-    tft.init();                     // initialise TFT LCD display
-    tft.fillScreen(TFT_BLACK);      // set default background color to black
-    tft.setRotation(1);             // set LCD to landscape orientation
-    tft.setTextColor(TFT_WHITE);    // global text color
-    tft.setSwapBytes(true);         // allow use of images (bitmaps)
+    tft.init();                                 // initialise TFT LCD display
+    tft.fillScreen(TFT_BLACK);                  // set default background color to black
+    tft.setRotation(1);                         // set LCD to landscape orientation
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);     // global text color
+    tft.setSwapBytes(true);                     // allow use of images (bitmaps)
 
     // graph initialisations
-    gr.createGraph(200, 100, tft.color565(5, 5, 5));   // Graph area is 200 pixels wide, 150 high, dark grey background
-    gr.setGraphScale(0.0, 100.0, -50.0, 50.0);         // x scale units is from 0 to 100, y scale units is -50 to 50
+    gr.createGraph(240, 75, tft.color565(5, 5, 5));   // Graph area is 200 pixels wide, 150 high, dark grey background
+    gr.setGraphScale(0.0, 5000.0, 0.0, 1800.0);         // x scale units is from 0 to 100, y scale units is -50 to 50
 
     // X grid starts at 0 with lines every 10 x-scale units
     // Y grid starts at -50 with lines every 25 y-scale units
     // blue grid
-    gr.setGraphGrid(0.0, 10.0, -50.0, 25.0, TFT_BLUE);
+    gr.setGraphGrid(0.0, 500.0, 0, 600, TFT_WHITE);
 
 
-    gr.drawGraph(240, 195);       // Draw empty graph, top left corner at 40,10 on TFT
-    tr1.startTrace(TFT_RED);      // Start a trace with using red and another with green
+    gr.drawGraph(230, 235);       // Draw empty graph, top left corner at 40,10 on TFT
+    tr1.startTrace(textColor);      // Start a trace with using red and another with green
+    tr2.startTrace(textColor);      // Start a trace with using red and another with green
     tr1.addPoint(0.0, 0.0);        // Add points on graph to trace 1 using graph scale factors
+    tr2.startTrace(textColor);      // Start a trace with using red and another with green
+    tr2.addPoint(0.0+1.0, 0.0+1.0);        // Add points on graph to trace 1 using graph scale factors
 
     // Get x,y pixel coordinates of any scaled point on graph and ring that point.
-    tft.drawCircle(gr.getPointX(50.0), gr.getPointY(0.0), 5, TFT_MAGENTA);
+    //tft.drawCircle(gr.getPointX(50.0), gr.getPointY(0.0), 5, TFT_WHITE);
 
     // Draw the x axis scale
-    tft.setTextDatum(TC_DATUM); // Top centre text datum
-    tft.drawNumber(0, gr.getPointX(0.0), gr.getPointY(-50.0) + 3);
-    tft.drawNumber(50, gr.getPointX(50.0), gr.getPointY(-50.0) + 3);
-    tft.drawNumber(100, gr.getPointX(100.0), gr.getPointY(-50.0) + 3);
+    // tft.setTextDatum(TC_DATUM); // Top centre text datum
+    // tft.drawNumber(0, gr.getPointX(0.0), gr.getPointY(-50.0) + 3);
+    // tft.drawNumber(50, gr.getPointX(50.0), gr.getPointY(-50.0) + 3);
+    // tft.drawNumber(100, gr.getPointX(100.0), gr.getPointY(-50.0) + 3);
 
     // Draw the y axis scale
     tft.setTextDatum(MR_DATUM); // Middle right text datum
-    tft.drawNumber(-50, gr.getPointX(0.0), gr.getPointY(-50.0));
     tft.drawNumber(0, gr.getPointX(0.0), gr.getPointY(0.0));
-    tft.drawNumber(50, gr.getPointX(0.0), gr.getPointY(50.0));
+    tft.drawNumber(600, gr.getPointX(0.0), gr.getPointY(600.0));
+    tft.drawNumber(1200, gr.getPointX(0.0), gr.getPointY(1200.0));
+    tft.drawNumber(1800, gr.getPointX(0.0), gr.getPointY(1800.0));
 
     // Restart traces with new colours
-    tr1.startTrace(TFT_WHITE);
+    tr1.startTrace(textColor);
 }
 
 
@@ -124,71 +132,106 @@ void setup() {
 //////////////////////////////////////////
 void loop(void) {
 
+    if (millis() - last >= 500) {
     
-    // check data in serial bugger
-    if(mySerial.available() > 0) {
+        // check data in serial bugger
+        if(mySerial.available() > 0) {
 
-        // create incomingString of string type and read unitl a newline terminating character is reached
-        incomingString = mySerial.readStringUntil('\n');
-        // Split the input string into individual values based on commas
-        int numValues = split(incomingString, values, ',');
-  
-        Serial.println(incomingString);
-    }
+            // create incomingString of string type and read unitl a newline terminating character is reached
+            incomingString = mySerial.readStringUntil('\n');
+            // Split the input string into individual values based on commas
+            int numValues = split(incomingString, values, ',');
+      
+            //Serial.println(incomingString);
+        }
 
-    // pull out return values
-    String ppm = values[0];
-    String temp = values[1];
-    String humidity = values[2];
-    String isDay = values[3];
-    String date = values[4];
-    String time = values[5];
+        // pull out return values
+        String ppm = values[0];
+        String temp = values[1];
+        String humidity = values[2];
+        String isDay = values[3];
+        String date = values[4];
+        String time = values[5];
 
-    drawContainers();
-    setName();
-    setActivity(isDay, date, time);
-    setTemperature(temp);
-    setHumidity(humidity);
+        drawContainers();
+        setName();
+        setActivity(isDay, date, time);
+        setTemperature(temp);
+        setHumidity(humidity);
 
-    // air quality meter
-    if (ppm == "") {
-      reading = 0;
-    } else {
-      reading = ppm.toInt();
-    }
-    
-    ringMeter(reading,0,999, xpos, ypos, radius,"PPM",GREEN2RED); // Draw analogue meter
+        // air quality meter
+        if (ppm == "") {
+          reading = 0;
+        } else {
+          reading = ppm.toInt();
+        }
+        
+        ringMeter(reading,0,999, xpos, ypos, radius,"PPM",GREEN2RED); // Draw analogue meter
 
-    setStatus(reading);
+        setStatus(reading);
 
-    //delay(5000);
-    static uint32_t plotTime = millis();
-  static float gx = 0.0, gy = 0.0;
-  static float delta = 7.0;
+        //delay(5000);
+      static uint32_t plotTime = millis();
+      static float gx = 0.0;
+      long gy = map(values[0].toInt(), 0, 1000, 31, 1800);
+      Serial.println(gy);
+      long gy_tmp;
+      long delta;
 
-  // Sample periodically
-  if (millis() - plotTime >= 100) {
-    plotTime = millis();
+      tft.setTextColor(textColor, TFT_BLACK);
+      tft.setCursor(210, 200);
+      tft.setTextSize(2);
+      tft.println("Buzzer Freq (Hz):");
+      tft.setTextColor(TFT_WHITE, TFT_BLACK);
+      tft.setCursor(420, 200);
+      tft.setTextSize(2);
+      if (gy > 999 ) {
+        tft.println(String(gy));
+      }
+      else if (gy > 99) {
+        tft.println(String(gy) + " ");
+      }
+      else {
+        tft.println(String(gy) + "  ");
+      }
 
-    // Add a new point on each trace
-    tr1.addPoint(gx, gy/2.0);
+      
 
-    // Create next plot point
-    gx += 1.0;
-    gy += delta;
-    if (gy >  70.0) { delta = -7.0; gy =  70.0; }
-    if (gy < -70.0) { delta =  7.0; gy = -70.0; }
+      if (gx == 0.0) {
+        delta = 0.0;
+        gy_tmp = gy;
+      } else {
+        if (gy > gy_tmp) {
+          delta = gy - gy_tmp;
+        } else {
+          delta = gy_tmp - gy;
+        }
+      }
 
-    // If the end of the graph is reached start 2 new traces
-    if (gx > 100.0) {
-      gx = 0.0;
-      gy = 0.0;
+      // Sample periodically
+      // if (millis() - plotTime >= 100) {
+      //   plotTime = millis();
 
-      // Draw empty graph at 40,10 on display
-      gr.drawGraph(240, 195);
-      // Start new trace
-      tr1.startTrace(TFT_GREEN);
-    }
+        // Add a new point on each trace
+        tr1.addPoint(gx, gy);
+        tr2.addPoint(gx+1.0, gy+1.0);        // Add points on graph to trace 1 using graph scale factors
+
+        // Create next plot point
+        gx += 500;
+        gy += delta;
+
+        // If the end of the graph is reached start 2 new traces
+        if (gx > 5500) {
+          gx = 0.0;
+
+          // Draw empty graph at 40,10 on display
+          gr.drawGraph(230, 235);
+          // Start new trace
+          tr1.startTrace(textColor);
+          tr2.startTrace(textColor);
+        }
+      // }
+      last += 500;
   }
 }
 
@@ -260,7 +303,7 @@ void setActivity(String isDay, String date, String time) {
   tft.setTextSize(1);
 
   if (isDay == " " || isDay == "0") {
-      tft.println("(Dark)");
+      tft.println("(Dark) ");
        // display mode bitmap (moon or sun)
       tft.pushImage(280,3,45,45,moon_icon);  // display moon bitmap
   } 
@@ -289,24 +332,34 @@ void setActivity(String isDay, String date, String time) {
   }
   tft.setCursor(455,25);
   tft.setTextSize(1);
-  tft.println("PM");
+
+  
+  // set AM or PM based on 24 hr clock
+  int hours = time.substring(0,2).toInt();
+
+  if (hours >= 0 && hours < 12) {
+    tft.println("AM");
+  } 
+  else if (hours > 12 && hours <= 23) {
+    tft.println("PM");
+  }
 }
 
 // function that displays displays the temperature
 void setTemperature(String temp) {
   uint16_t textColor = tft.color565(0xeb, 0x8e, 0x21); // convert color hex code to RGB
-  tft.setTextColor(textColor);
+  tft.setTextColor(textColor, TFT_BLACK);
   tft.setCursor(210,65);
   tft.setTextSize(2);
   tft.println("Temp");
 
   tft.fillTriangle(321, 53, 336, 68, 336, 53, textColor);
 
-  tft.setTextColor(TFT_WHITE);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setCursor(210,100);
   tft.setTextSize(7);
 
-  if (temp = "") {
+  if (temp == "") {
     tft.println("--");
   }
   else {
@@ -318,28 +371,28 @@ void setTemperature(String temp) {
 
   tft.drawCircle(305, 113, 3, textColor);
   tft.drawCircle(305, 113, 4, textColor);
-  tft.setTextColor(textColor);
+  tft.setTextColor(textColor, TFT_BLACK);
   tft.setCursor(310,115);
   tft.setTextSize(3);
   tft.println("C");
-  tft.setTextColor(TFT_WHITE);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
 }
 
 // function that displays the humidity
 void setHumidity(String humidity) {
   uint16_t textColor = tft.color565(0xeb, 0x8e, 0x21); // convert color hex code to RGB
-  tft.setTextColor(textColor);
+  tft.setTextColor(textColor, TFT_BLACK);
   tft.setCursor(350,65);
   tft.setTextSize(2);
   tft.println("Humidity");
 
   tft.fillTriangle(460, 53, 475, 68, 475, 53, textColor);
 
-  tft.setTextColor(TFT_WHITE);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setCursor(350,100);
   tft.setTextSize(7);
 
-  if (humidity = "") {
+  if (humidity == "") {
       tft.println("--");
   }
   else {
@@ -348,11 +401,11 @@ void setHumidity(String humidity) {
 
   tft.fillRect(350, 160, 120, 15, textColor);
 
-  tft.setTextColor(textColor);
+  tft.setTextColor(textColor, TFT_BLACK);
   tft.setCursor(445,115);
   tft.setTextSize(3);
   tft.println("%");
-  tft.setTextColor(TFT_WHITE);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
 }
 
 
@@ -379,16 +432,17 @@ void setStatus(int reading) {
   }
 
   switch(state) {
-    case 0: tft.pushImage(95,271,45,45,tick_icon); msg_state="(GOOD)"; break;       // display green tick
-    case 1: tft.pushImage(95,271,45,45,warning_icon); msg_state="(FAIR)"; break;    // display red cross
-    case 2: tft.pushImage(95,271,45,45,cross_icon); msg_state="(POOR)"; break;      // display warning sign
+    case 0: tft.pushImage(95,271,45,45,tick_icon); msg_state="(GOOD)  "; break;       // display green tick
+    case 1: tft.pushImage(95,271,45,45,warning_icon); msg_state="(FAIR)  "; break;    // display red cross
+    case 2: tft.pushImage(95,271,45,45,cross_icon); msg_state="(POOR)  "; break;      // display warning sign
     case 3: tft.pushImage(95,271,45,45,danger_icon); msg_state="(DANGER)"; break;   // display skull and bones
-    default: tft.pushImage(95,271,45,45,tick_icon); msg_state="(GOOD)"; break;       // display green tick
+    default: tft.pushImage(95,271,45,45,tick_icon); msg_state="(GOOD) "; break;       // display green tick
   }
 
   // position of the "mode" value (light or dark) label
   tft.setCursor(145, 290);
   tft.setTextSize(1);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.println(msg_state);
 }
 
@@ -456,7 +510,7 @@ int ringMeter(int value, int vmin, int vmax, int x, int y, int r, const char *un
   }
   // Convert value to a string
   char buf[10];
-  byte len = 3; if (value > 999) len = 5;
+  byte len = 3; if (value > 999) len = 5; if (value < 100) len = 5;
   dtostrf(value, len, 0, buf);
   buf[len] = ' '; buf[len+1] = 0; // Add blanking space and terminator, helps to centre text too!
   // Set the text colour to default
@@ -543,6 +597,7 @@ unsigned int rainbow(byte value)
   }
   return (red << 11) + (green << 5) + blue;
 }
+
 
 int split(String input, String output[], char delimiter) {
   int tokenIndex = 0;
