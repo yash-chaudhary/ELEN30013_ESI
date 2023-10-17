@@ -27,7 +27,7 @@ void loop() {
   Serial.println(outgoingString);  // output data to serial monitor
   mySerial.println(outgoingString);      // send data to ESP8266
 
-  delay(500);
+  delay(2000);
 }
 
 
