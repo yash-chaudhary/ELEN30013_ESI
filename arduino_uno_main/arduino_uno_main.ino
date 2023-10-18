@@ -41,7 +41,7 @@ float B = 2200.0;
 
 // LDR variables
 const int ldrPin = A0;
-const float ldrThreshold = 200.0;
+const float ldrThreshold = 400.0;
 bool is_day;
 
 // LED & Buzzer variables
@@ -320,7 +320,7 @@ void buzz_LED(int air_ppm) {
   // Serial.print("Buzz Duration: ");
   // Serial.println(toneDuration);
 
-  if (currentMillis - previousBuzzMillis >= toneDuration) {
+  if (currentMillis - previousBuzzMillis >= toneDuration && air_ppm > 200) {
     tone(buzzPin, toneFreq, 100);
     previousBuzzMillis = millis();
   }
