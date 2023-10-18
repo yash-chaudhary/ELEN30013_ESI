@@ -75,7 +75,11 @@ void setColour (int redValue, int greenValue);
 void setup() {
   Rtc.Begin();
   RtcDateTime compiled = RtcDateTime(__DATE__, __TIME__);
-  Rtc.SetDateTime(compiled);
+  RtcDateTime now = Rtc.GetDateTime();
+
+  if (now < compiled) {
+    Rtc.SetDateTime(compiled);
+  }
 
   Serial.begin(9600);   // 9600 bits per second baud rate
   mySerial.begin(9600); // start software serial
