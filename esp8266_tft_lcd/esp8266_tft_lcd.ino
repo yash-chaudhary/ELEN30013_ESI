@@ -13,20 +13,20 @@
 // include libraries and files
 #include "SPI.h"
 #include "TFT_eSPI.h"
-#include "light_nose_icon.h"      // bitmap 48 x 48 px 
+#include "light_nose_icon.h"     // bitmap 48 x 48 px 
 #include "dark_nose_icon.h"      // bitmap 48 x 48 px 
-#include "moon_icon.h"      // bitmap 45 x 45 px
-#include "sun_icon.h"      // bitmap 45 x 45 px
+#include "moon_icon.h"           // bitmap 45 x 45 px
+#include "sun_icon.h"            // bitmap 45 x 45 px
 #include "dark_tick_icon.h"      // bitmap 45 x 45 px
 #include "dark_warning_icon.h"   // bitmap 45 x 45 px
 #include "dark_cross_icon.h"     // bitmap 45 x 45 px
 #include "dark_danger_icon.h"    // bitmap 45 x 45 px
-#include "light_tick_icon.h"      // bitmap 45 x 45 px
-#include "light_warning_icon.h"   // bitmap 45 x 45 px
-#include "light_cross_icon.h"     // bitmap 45 x 45 px
-#include "light_danger_icon.h"    // bitmap 45 x 45 px
-#include <SoftwareSerial.h> // default software serial library
-#include <TFT_eWidget.h>    // widget library (for graphing)
+#include "light_tick_icon.h"     // bitmap 45 x 45 px
+#include "light_warning_icon.h"  // bitmap 45 x 45 px
+#include "light_cross_icon.h"    // bitmap 45 x 45 px
+#include "light_danger_icon.h"   // bitmap 45 x 45 px
+#include <SoftwareSerial.h>      // default software serial library
+#include <TFT_eWidget.h>         // widget library (for graphing)
 
 // software serial configurations
 int rxPin = 4;
@@ -361,18 +361,20 @@ void setActivity(String isDay, String date, String time) {
 
     lightMode ? tft.pushImage(280,3,45,45,sun_icon) : tft.pushImage(280,3,45,45,moon_icon);
 
-    if (isDay == " " || isDay == "0") {
+    if (isDay == "" || isDay == "0") {
         tft.println("(Dark) ");
         // display mode bitmap (moon or sun)
-    } else {
+    } else if (isDay == "1") {
         tft.println("(Light)");
+    } else {
+         tft.println("(Mode)");
     }
 
     // position of the date
     tft.setCursor(355,8);
     tft.setTextSize(2);
     if (date == "") {
-        tft.println("--/--/----");
+        tft.println("DD/MM/YYYY");
     } else {
         tft.println(date);
     }
@@ -381,7 +383,7 @@ void setActivity(String isDay, String date, String time) {
     tft.setCursor(355,28);
     tft.setTextSize(2);
     if (time == "") {
-        tft.println("88.88.88");
+        tft.println("88:88:88");
     } else {
         tft.println(time);
     }

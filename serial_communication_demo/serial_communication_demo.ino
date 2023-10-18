@@ -17,6 +17,7 @@ const int rxPin = 7;
 const int txPin = 8;
 SoftwareSerial mySerial (rxPin, txPin);
 byte dayByte = 0;
+bool preset = false;
 
 void setup() {
     // put your setup code here, to run once:
@@ -25,8 +26,14 @@ void setup() {
 }
 
 void loop() {
+    String outgoingString;
 
-    String outgoingString = createPacket();
+    if (preset) {
+        outgoingString = "921,35,60,0,18/10/2023,13:43:23";
+    } else {
+        outgoingString = createPacket();
+    }
+   
 
     Serial.println(outgoingString);  // output data to serial monitor
     mySerial.println(outgoingString);      // send data to ESP8266
