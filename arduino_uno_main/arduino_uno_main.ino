@@ -144,7 +144,7 @@ void run_normal() {
       curr_humidity = get_humidity();    // get current humidity (%)
       is_day = get_light();              // get light or day (bool)
 
-      air_ppm = analogRead(ldrPin);
+      // air_ppm = analogRead(ldrPin); // Used for testing
   
       printSerial(air_ppm, curr_temp, curr_humidity, is_day);
 
