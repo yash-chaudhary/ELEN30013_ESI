@@ -6,6 +6,7 @@ This project is inspired by Mark Watney's bio-monitor displayed The Martian movi
 
 ### System Diagram
 
+### LCD Interface
 
 ### Finished build
 
