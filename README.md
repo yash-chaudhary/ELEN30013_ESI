@@ -2,7 +2,11 @@
 
 Introducing... S.N.I.F.E.R - Sensory Network for Intuitive Feedback on Environmental Risks.
 
-This project is inspired by Mark Watney's bio-monitor displayed The Martian movie. 
+This project is inspired by Mark Watney's bio-monitor displayed The Martian movie.
+
+This project uses the tft_espi ui library for embedded displays. The initial setup to use this library was elusive so I have included the
+setup that I used for my specific drvier chip (ILI9488). In the setup files you'll see how to select your supported driver chip and the
+pin definitions you need to make to ensure the library operates correctly.
 
 ## The Details
 The purpose of this project is to build an assistive technology that  uses an array of sensors. The sensor suite for our product is 
