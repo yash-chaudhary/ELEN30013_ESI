@@ -5,7 +5,7 @@ Introducing... S.N.I.F.E.R - Sensory Network for Intuitive Feedback on Environme
 This project is inspired by Mark Watney's bio-monitor displayed The Martian movie. 
 
 ## The Details
-The purpose of this project is to build an assistive technology uses an array of sensors. The sensor suite for our product is 
+The purpose of this project is to build an assistive technology that  uses an array of sensors. The sensor suite for our product is 
 tailored to give the user feedback on their surrounding environment. At the heart of this project is the MQ135 air quality 
 sensor that returns the air quality in parts-per-million (PPM). Based on the thresholds we have set, the user is notified of
 increasingly worsening environmental conditions via visuals on a liquid crystal display (LCD) and other electronic components with a 
